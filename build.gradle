@@ -2,6 +2,11 @@ plugins {
 	id 'java'
 }
 
+// RuneLite's client pulls LWJGL with natives for ALL platforms. On Windows,
+// lwjgl-opengl-natives-linux-arm64 doesn't exist in Maven Central for 3.3.2,
+// causing resolution failures. Configure the run task to use lenient resolution
+// so missing platform natives are skipped rather than failing the build.
+
 repositories {
 	mavenLocal()
 	maven {
@@ -14,7 +19,7 @@ repositories {
 }
 
 def runeLiteVersion = 'latest.release'
-def pluginMainClass = 'com.example.ExamplePluginTest'
+def pluginMainClass = 'com.osrssim.encounterlogger.EncounterLoggerPluginTest'
 
 dependencies {
 	compileOnly group: 'net.runelite', name:'client', version: runeLiteVersion
@@ -27,7 +32,7 @@ dependencies {
 	testImplementation group: 'net.runelite', name:'jshell', version: runeLiteVersion
 }
 
-group = 'com.example'
+group = 'com.osrssim.encounterlogger'
 
 tasks.withType(JavaCompile).configureEach {
 	options.encoding = 'UTF-8'
@@ -35,9 +40,22 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 tasks.register('run', JavaExec) {
-	classpath = sourceSets.test.runtimeClasspath
-	mainClass = pluginMainClass
+	// Resolve artifacts leniently so missing LWJGL platform natives (e.g.
+	// lwjgl-opengl-natives-linux-arm64, which doesn't exist in Maven Central
+	// for 3.3.2) are skipped rather than failing the build on Windows.
+	def lenientClasspath = configurations.testRuntimeClasspath
+		.resolvedConfiguration
+		.lenientConfiguration
+		.artifacts
+		.collect { it.file }
 
+	// Include compiled classes AND resources from both source sets
+	def ownOutputs = [sourceSets.main.output, sourceSets.test.output]
+		.collectMany { it.files.toList() }
+
+	classpath = files(lenientClasspath + ownOutputs)
+
+	mainClass = pluginMainClass
 	jvmArgs "-ea"
 	args "--developer-mode", "--debug"
 }

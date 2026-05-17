@@ -1,9 +1,13 @@
-.gradle
-build
+# RuneLite Plugin ignores
+.gradle/
+build/
+out/
+bin/
 .idea/
-.project
-.settings/
-.classpath
-nbactions.xml
-nb-configuration.xml
-nbproject/
+.vscode/
+*.class
+*.log
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
